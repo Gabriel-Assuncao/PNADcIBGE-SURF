@@ -70,31 +70,31 @@ if("surf" %in% rownames(installed.packages())==FALSE)
 library(package="surf", verbose=TRUE)
 
 # Obtendo microdados trimestrais da PNAD Contínua (PNADcIBGE >= 0.6.0)
-pnadc032020 <- PNADcIBGE::get_pnadc(year=2020, quarter=3, labels=TRUE, deflator=TRUE, design=FALSE)
-pnadc042020 <- PNADcIBGE::get_pnadc(year=2020, quarter=4, labels=TRUE, deflator=TRUE, design=FALSE)
-pnadc012021 <- PNADcIBGE::get_pnadc(year=2021, quarter=1, labels=TRUE, deflator=TRUE, design=FALSE)
+pnadc022022 <- PNADcIBGE::get_pnadc(year=2022, quarter=2, labels=TRUE, deflator=TRUE, design=FALSE)
+pnadc032022 <- PNADcIBGE::get_pnadc(year=2022, quarter=3, labels=TRUE, deflator=TRUE, design=FALSE)
+pnadc042022 <- PNADcIBGE::get_pnadc(year=2022, quarter=4, labels=TRUE, deflator=TRUE, design=FALSE)
 
 # Realizando coleta de lixo acumulada durante a obtenção dos microdados
 gc(verbose=FALSE, reset=FALSE, full=TRUE)
 
 # Criando variáveis auxiliares para obtenção da estimativa desejada
-pnadc032020 <- transform(pnadc032020, ID_DOMICILIO=paste0(UPA,V1008,V1014))
-pnadc032020 <- transform(pnadc032020, ID_PESSOA=paste0(UPA,V1008,V1014,V2003))
-pnadc042020 <- transform(pnadc042020, ID_DOMICILIO=paste0(UPA,V1008,V1014))
-pnadc042020 <- transform(pnadc042020, ID_PESSOA=paste0(UPA,V1008,V1014,V2003))
-pnadc012021 <- transform(pnadc012021, ID_DOMICILIO=paste0(UPA,V1008,V1014))
-pnadc012021 <- transform(pnadc012021, ID_PESSOA=paste0(UPA,V1008,V1014,V2003))
+pnadc022022 <- transform(pnadc022022, ID_DOMICILIO=paste0(UPA,V1008,V1014))
+pnadc022022 <- transform(pnadc022022, ID_PESSOA=paste0(UPA,V1008,V1014,V2003))
+pnadc032022 <- transform(pnadc032022, ID_DOMICILIO=paste0(UPA,V1008,V1014))
+pnadc032022 <- transform(pnadc032022, ID_PESSOA=paste0(UPA,V1008,V1014,V2003))
+pnadc042022 <- transform(pnadc042022, ID_DOMICILIO=paste0(UPA,V1008,V1014))
+pnadc042022 <- transform(pnadc042022, ID_PESSOA=paste0(UPA,V1008,V1014,V2003))
 
 # Realizando processo de junção das bases dos trimestres de referência
-data_pnadc <- merge(x=pnadc032020, y=pnadc042020, by.x="ID_PESSOA", by.y="ID_PESSOA", all.x=FALSE, all.y=FALSE)
-data_pnadc <- merge(x=data_pnadc, y=pnadc012021, by.x="ID_PESSOA", by.y="ID_PESSOA", all.x=FALSE, all.y=FALSE)
-rm(pnadc032020, pnadc042020, pnadc012021)
+data_pnadc <- merge(x=pnadc022022, y=pnadc032022, by.x="ID_PESSOA", by.y="ID_PESSOA", all.x=FALSE, all.y=FALSE)
+data_pnadc <- merge(x=data_pnadc, y=pnadc042022, by.x="ID_PESSOA", by.y="ID_PESSOA", all.x=FALSE, all.y=FALSE)
+rm(pnadc022022, pnadc032022, pnadc042022)
 
 # Mantendo somente observações das visitas de referência para comparação
 data_pnadc <- subset(data_pnadc, `V1016.x`%in%c("1","2","3") & `V1016.y`%in%c("2","3","4") & `V1016`%in%c("3","4","5"))
 data_pnadc <- tibble::as_tibble(x=data_pnadc)
 
-# Criando variável de status para análise do fluxo entre trimestres
+# Criando variável de status para análise do fluxo bruto entre trimestres
 data_pnadc <- transform(data_pnadc, status_1=as.factor(ifelse(`VD4001.x`=="Pessoas fora da força de trabalho", "Pessoas fora da força de trabalho", as.character(`VD4002.x`))))
 data_pnadc$status_1 <- factor(x=data_pnadc$status_1, levels=c("Pessoas ocupadas","Pessoas desocupadas","Pessoas fora da força de trabalho"))
 data_pnadc <- transform(data_pnadc, status_2=as.factor(ifelse(`VD4001.y`=="Pessoas fora da força de trabalho", "Pessoas fora da força de trabalho", as.character(`VD4002.y`))))
@@ -133,11 +133,10 @@ options(survey.lonely.psu="adjust")
 }
 str(object=data_pnadc)
 
-# Definindo base de fluxo da PNAD Contínua pela população em idade ativa
+# Definindo base da PNAD Contínua com recorte pela população em idade ativa
 flow_pnadc <- subset(data_pnadc, `V2009.x`>=14 & `V2009.y`>=14 & `V2009`>=14)
-nrow(x=flow_pnadc)
 
-# Estimando tabulações ingênuas com e sem dados ausentes
+# Estimando tabulações ingênuas das variáveis com e sem dados ausentes
 survey::svytable(formula=~status_1+status_2, design=flow_pnadc)
 survey::svytable(formula=~status_1+status_2, design=flow_pnadc, addNA=TRUE)
 survey::svytable(formula=~status_1+status_3, design=flow_pnadc)
@@ -160,17 +159,17 @@ modC_pnadc_2_3 <- surf::svyflow(x=~status_2+status_3, design=flow_pnadc, model="
 modD_pnadc_2_3 <- surf::svyflow(x=~status_2+status_3, design=flow_pnadc, model="D", verbose=TRUE)
 
 # Avaliando resultados obtidos dos modelos de fluxos brutos da PNAD Contínua
-list(coeficiente=coef(object=modA_pnadc_1_2), erro_padrao=SE(object=modA_pnadc_1_2))
-list(coeficiente=coef(object=modB_pnadc_1_2), erro_padrao=SE(object=modB_pnadc_1_2))
-list(coeficiente=coef(object=modC_pnadc_1_2), erro_padrao=SE(object=modC_pnadc_1_2))
-list(coeficiente=coef(object=modD_pnadc_1_2), erro_padrao=SE(object=modD_pnadc_1_2))
-list(coeficiente=coef(object=modA_pnadc_1_3), erro_padrao=SE(object=modA_pnadc_1_3))
-list(coeficiente=coef(object=modB_pnadc_1_3), erro_padrao=SE(object=modB_pnadc_1_3))
-list(coeficiente=coef(object=modC_pnadc_1_3), erro_padrao=SE(object=modC_pnadc_1_3))
-list(coeficiente=coef(object=modD_pnadc_1_3), erro_padrao=SE(object=modD_pnadc_1_3))
-list(coeficiente=coef(object=modA_pnadc_2_3), erro_padrao=SE(object=modA_pnadc_2_3))
-list(coeficiente=coef(object=modB_pnadc_2_3), erro_padrao=SE(object=modB_pnadc_2_3))
-list(coeficiente=coef(object=modC_pnadc_2_3), erro_padrao=SE(object=modC_pnadc_2_3))
-list(coeficiente=coef(object=modD_pnadc_2_3), erro_padrao=SE(object=modD_pnadc_2_3))
+list(coeficiente=coef(object=modA_pnadc_1_2$muij), erro_padrao=SE(object=modA_pnadc_1_2$muij))
+list(coeficiente=coef(object=modB_pnadc_1_2$muij), erro_padrao=SE(object=modB_pnadc_1_2$muij))
+list(coeficiente=coef(object=modC_pnadc_1_2$muij), erro_padrao=SE(object=modC_pnadc_1_2$muij))
+list(coeficiente=coef(object=modD_pnadc_1_2$muij), erro_padrao=SE(object=modD_pnadc_1_2$muij))
+list(coeficiente=coef(object=modA_pnadc_1_3$muij), erro_padrao=SE(object=modA_pnadc_1_3$muij))
+list(coeficiente=coef(object=modB_pnadc_1_3$muij), erro_padrao=SE(object=modB_pnadc_1_3$muij))
+list(coeficiente=coef(object=modC_pnadc_1_3$muij), erro_padrao=SE(object=modC_pnadc_1_3$muij))
+list(coeficiente=coef(object=modD_pnadc_1_3$muij), erro_padrao=SE(object=modD_pnadc_1_3$muij))
+list(coeficiente=coef(object=modA_pnadc_2_3$muij), erro_padrao=SE(object=modA_pnadc_2_3$muij))
+list(coeficiente=coef(object=modB_pnadc_2_3$muij), erro_padrao=SE(object=modB_pnadc_2_3$muij))
+list(coeficiente=coef(object=modC_pnadc_2_3$muij), erro_padrao=SE(object=modC_pnadc_2_3$muij))
+list(coeficiente=coef(object=modD_pnadc_2_3$muij), erro_padrao=SE(object=modD_pnadc_2_3$muij))
 
 ##########################################################################
