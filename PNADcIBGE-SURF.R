@@ -69,6 +69,9 @@ if("surf" %in% rownames(installed.packages())==FALSE)
 }
 library(package="surf", verbose=TRUE)
 
+# Verificando manual de utilização da função para obtenção dos microdados
+help(topic="get_pnadc", package="PNADcIBGE")
+
 # Obtendo microdados trimestrais da PNAD Contínua (PNADcIBGE >= 0.6.0)
 pnadc022022 <- PNADcIBGE::get_pnadc(year=2022, quarter=2, labels=TRUE, deflator=TRUE, design=FALSE)
 pnadc032022 <- PNADcIBGE::get_pnadc(year=2022, quarter=3, labels=TRUE, deflator=TRUE, design=FALSE)
